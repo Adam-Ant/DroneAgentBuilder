@@ -1,5 +1,6 @@
 # Enable the community repo
-edit /etc/apk/repositories:'s/^#\(.*community\)/\1/g'
+edit /etc/apk/repositories:s/^#(.*community.*)$/\1/gmp
+update
 
 # Setup the new MOTD
 run motd.sh
@@ -8,21 +9,11 @@ run motd.sh
 root-password disabled
 edit /etc/ssh/sshd_config:'/^PermitRootLogin yes/d'
 
-# Set up the docker user
-update
-install docker
-install sudo
-install shadow
-run-command adduser -D -G docker docker
-run-command { echo changeme; echo changeme; } | passwd docker
-run-command echo changeme | chage -d 0 docker
-run-command echo 'docker ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/docker-nopasswd
-chmod 0640:/etc/sudoers.d/*
 
 # Install docker
 install docker
 run-command rc-update add docker boot
-run-command service docker start
+#run-command service docker start
 
 # Install docker-compose
 install python
@@ -30,8 +21,26 @@ install py-pip
 run-command pip install docker-compose
 uninstall py-pip
 
+# Set up the docker user
+install sudo
+install shadow
+run-command adduser -D -G docker docker
+run-command  { echo changeme; echo changeme; } | passwd docker
+run-command passwd -e docker
+run-command echo 'docker ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/docker-nopasswd
+chmod 0640:/etc/sudoers.d/docker-nopasswd
+
 # Set up pruning docker every 15 minutes. Useful for build agents
 run-command rc-update add crond
 run-command echo '*/15 * * * * docker system prune -a -f --filter until=10m' | crontab -u docker -
 
-# Install the drone-agent starters
+# Add the start script, docker-compose file, and secrets file
+copy-in drone-agent.start:/etc/local.d/
+chmod 0755:/etc/local.d/drone-agent.start
+run-command rc-update add local default
+copy-in drone-compose.yml:/etc/
+copy-in dronecfg:/etc/
+
+# Set the hostname
+edit /etc/network/interfaces:s/alpine/dronerunner/
+run-command echo 'dronerunner' > /etc/hostname
