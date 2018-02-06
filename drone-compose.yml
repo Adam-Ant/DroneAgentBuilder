@@ -1,0 +1,14 @@
+version: '3.1'
+
+# Run this on a dedicated box only!
+# It WILL make a mess of the docker daemon
+
+services:
+  agent:
+    image: drone/agent:0.8.4
+    container_name: drone-agent
+    command: agent
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file: /etc/dronecfg

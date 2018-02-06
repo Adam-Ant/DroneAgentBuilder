@@ -1,0 +1,2 @@
+#! /bin/sh
+docker-compose -f /etc/drone-compose.yml up --force-recreate -d
